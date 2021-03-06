@@ -1,5 +1,5 @@
 package de.qwertyuiop.copret
-import ammonite.ops.{Path, ShelloutException, pwd, %, %%}
+import ammonite.ops.{Path, ShelloutException, pwd, read, %, %%}
 import org.jline.terminal.TerminalBuilder
 import org.jline.reader.LineReaderBuilder
 
@@ -45,6 +45,18 @@ object Terminal {
         prompt(prefix, parse)(retry, error)
       }
       else result
+  }
+
+  def isTmux = sys.env.contains("TMUX") || sys.env("TERM").startsWith("screen")
+
+  def osc = if (isTmux) "\u001bPtmux\u001b\u001b]" else "\u001b]"
+  def st = if (isTmux) "\u0007\u001b\\" else "\u0007"
+
+  def showImage(img: Path, width: String = "100%", height: String = "100%", keepAspect: Boolean = true) = {
+    import java.util.Base64
+    val image = Base64.getEncoder.encodeToString(read.bytes(img))
+    val aspect = if(keepAspect) 1 else 0
+    s"${osc}1337;File=inline=1;width=$width;height=$height;preserveAspectRatio=$aspect:$image$st"
   }
 }
 

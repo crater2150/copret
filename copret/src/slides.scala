@@ -60,9 +60,7 @@ object Presentation {
     case PauseKey => waitkey(Keymap.empty)
     case Pause(msec) => Thread.sleep(msec)
     case incMd @ IncludeMarkdown(_) => println(incMd.markdownBlock())
-    case Image(file) =>
-      try { %("imgcat", file.toString)(pwd) }
-      catch { case _: InteractiveShelloutException => println(s"Image missing: $file") }
+    case Image(file, width, height, keepAspect) => print(Terminal.showImage(file, width, height, keepAspect))
     case cmd: TypedCommand[_] => cmd.show()
     case Silent(actions) => actions()
     case Group(slides) => slides.foreach(executeSlide(p, pos))
@@ -84,7 +82,7 @@ object Presentation {
     case cmd: TypedCommand[_] => cmd.force()
     case Group(slides) => slides.foreach(executeSilent(p, pos))
     case lios @ LazyIOSlide(_, display) => executeSilent(p, pos)(lios.genSlide())
-    case Paragraph(_) | Image(_) | Clear | IncludeMarkdown(_) | Meta(_) => ()
+    case Paragraph(_) | Image(_,_,_,_) | Clear | IncludeMarkdown(_) | Meta(_) => ()
     case _ => executeQuick(p, pos)(slide)
   }
 }
@@ -95,7 +93,7 @@ case class Paragraph(contents: fansi.Str) extends Slide
 case class IncludeMarkdown(path: Path) extends Slide {
   def markdownBlock() = %%%("/usr/bin/mdcat", "--columns", (columns * 0.8).toInt.toString, path.toString)(pwd).block
 }
-case class Image(path: Path) extends Slide
+case class Image(path: Path, width: String = "100%", height: String = "100%", keepAspect: Boolean = true) extends Slide
 case object Clear extends Slide
 case class Pause(millisec: Long) extends Slide
 case object PauseKey extends Slide
