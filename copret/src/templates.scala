@@ -2,7 +2,7 @@ package de.qwertyuiop.copret
 import syntax._
 import ammonite.ops.{Path, %, %%, pwd}
 
-trait Templates {
+trait Templates:
   def titleLine(title: String)(implicit theme: Theme) = Paragraph(
     "\n" + Format.figlet(title, theme.font("titleLine", "pagga")).block.blue + "\n"
       )
@@ -20,6 +20,5 @@ trait Templates {
   def markdown(title: String, content: Path) = slide(title)(IncludeMarkdown(content))
 
   lazy val --- = Paragraph(("═" * columns).yellow)
-}
 
 /* vim:set tw=120: */

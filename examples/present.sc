@@ -4,7 +4,8 @@ import de.qwertyuiop.copret._
 import de.qwertyuiop.copret.syntax._
 import TypedCommand.{interactive, shell => sh}, Format.figlet
 
-import ammonite.ops._
+import ammonite.ops.{given, *}
+
 
 /* Configuration */
 
@@ -12,8 +13,8 @@ import ammonite.ops._
  * most of the commands in this presentation will be git commands in a demo repository, so the path to that repo is set
  * as implicit (will be the working directory of executed commands) */
 val imgs = pwd/"img"
-implicit val repoDir = pwd/"demoRepo"
-implicit val theme = Theme.default
+given repoDir: Path= pwd/"demoRepo"
+import de.qwertyuiop.copret.{given Theme}
 
 /* You can define any variables and use then in your presentation.
  * The presentation is pure Scala code, you can use anything that Scala offers . */
@@ -57,7 +58,7 @@ def chapter(title1: String, title2: String, subtitle: String): Group = {
   Group(Clear,
     header, // a built in template
     Paragraph(
-      figlet(title1, font).block.green ++ figlet(title2, font).block.green + "\n" + subtitle.right(10).green
+      figlet(title1, font).block.green ++ figlet(title2, font).block.green ++ "\n" ++ subtitle.right(10).green
     )
   )
 }
@@ -91,7 +92,7 @@ def gitCatFile(ref: String) = TypedCommand("git", "cat-file", "-p", ref)
 def gitLogGraph(cutOff: Int = 0) = {
   val shownCmd = "git log --graph --oneline --all"
   val execCmd = shownCmd + " --decorate=short --color=always " + (if(cutOff > 0) "| head -n -" + cutOff else "")
-  val typer = sh(execCmd) display shownCmd
+  val typer = sh(execCmd) showing shownCmd
   if(cutOff > 0)
     Group(typer, "...".text)
   else
@@ -133,10 +134,10 @@ val presentation = Presentation(Vector(
     Pause(500),
     /* `TypedCommand.shell` (here aliased to `sh`) displays a typing animation of that command and then executes it,
      * showing its output in the presentation */
-    sh("git init demoRepo")(pwd),
+    sh("git init demoRepo")(using pwd),
     /* sometimes it's useful to display something else than is actually executed, e.g. to add comments, or to hide
      * options only required because we don't call from an interactive shell (stuff like --color) */
-    sh("ls -1a --color=always demoRepo")(pwd) display "ls -1a demoRepo",
+    sh("ls -1a --color=always demoRepo")(using pwd) showing "ls -1a demoRepo",
     /* If you need to run commands that should not display anything in the presentation, use `Silent`.
      * Here I use it to prepare the repository, but it could also be used e.g. for playing a sound or opening a video.*/
     Silent {
@@ -307,13 +308,13 @@ val presentation = Presentation(Vector(
   slide("Branches")(
     "Machen wir ein paar Änderungen und committen sie:\n".par,
     ---,
-    sh("echo 'a new line' >> hello.txt") display "echo 'a new line' >> hello.txt  # appends to hello.txt",
+    sh("echo 'a new line' >> hello.txt") showing "echo 'a new line' >> hello.txt  # appends to hello.txt",
     sh("git add hello.txt"),
     sh("git commit -m \"Added line to hello\""),
     ---,
     "Da der Branch `feature/foo` aktiv war, zeigt dieser auf den neuen Commit. `master` wird nicht geändert:".code.text,
     PauseKey,
-    sh("git log --graph --oneline --all --decorate=short --color=always") display "git log --graph --oneline --all",
+    sh("git log --graph --oneline --all --decorate=short --color=always") showing "git log --graph --oneline --all",
   ),
   slide("Branches")(
     "Jetzt wechseln wir zurück zu `master`:\n".par,
@@ -357,7 +358,7 @@ val presentation = Presentation(Vector(
     """Git speichert Objekte unter `.git/objects/<erste zwei Stellen vom Hash>/<Rest vom Hash>`
       |Objekte sind komprimiert.
       |""".par,
-    sh("tree -C .git/objects/ | head -n 11") display "tree .git/objects/",
+    sh("tree -C .git/objects/ | head -n 11") showing "tree .git/objects/",
     s"...".par,
   ),
 ), meta=meta)
@@ -366,7 +367,7 @@ val presentation = Presentation(Vector(
  * The `runForeground` action lets you run any command, interrupting the presentation until it exits.
  * Here I bind the 'i' key to open tmux in the demo repo, for having interactive access, so I can call additional git
  * commands for questions */
-presentation.start(Keymap.default ++ Map(
+presentation.start(using Keymap.default ++ Map(
   Key('i') -> SlideAction.runForeground("tmux"),
 ))
 
