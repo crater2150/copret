@@ -67,5 +67,4 @@ private[copret] trait TerminalSyntax:
   def rows = jterm.getSize.getRows
 
 
-
 /* vim:set tw=120: */

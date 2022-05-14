@@ -15,12 +15,13 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
       action match
         case Start =>
           executeSlide(p, pos)()
-          rec(p, 1, waitkey)
+          rec(p, 0, waitkey)
         case Next | Other(_) =>
           if pos + 1 < p.slides.size then
             executeSlide(p, pos + 1)()
             rec(p, pos + 1, waitkey)
-          else rec(p, pos, waitkey)
+          else
+            rec(p, pos, waitkey)
         case QuickNext =>
           if pos + 1 < p.slides.size then
             executeQuick(p, pos + 1)()
@@ -30,7 +31,8 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
           if pos > 0 then
             executeQuick(p, pos - 1)()
             rec(p, pos - 1, waitkey)
-          else rec(p, pos, waitkey)
+          else
+            rec(p, pos, waitkey)
         case Interactive(cmd, path) =>
           %(cmd)(path)
           rec(p, pos - 1, QuickNext)
@@ -47,7 +49,8 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
           target match
             case Some(i) => rec(p, pos, Goto(i))
             case None => rec(p, pos - 1, QuickNext)
-        case Quit => ()
+        case Quit =>
+          ()
     rec(this, 0, Start)
 
 
@@ -112,9 +115,9 @@ case class TypedCommand[T](exec: T => String, display: String, cmd: T) extends S
   def force() = _output
 
   private def typeCmd() =
-    for char <- display
-    do print(char)
-       Thread.sleep(50 + scala.util.Random.nextInt(80))
+    for char <- display do
+      print(char)
+      Thread.sleep(50 + scala.util.Random.nextInt(80))
     println()
 
   /* Conditionally disable execution. Useful for e.g. a debug mode, or a non-interactive mode */
@@ -135,22 +138,22 @@ object TypedCommand:
   def run(using Path): Vector[String] => String =
     c => safe_%%(c)
 
-  def runShell(using Path): Vector[String] => String = 
+  def runShell(using Path): Vector[String] => String =
     c => safe_%%(Vector(shell, "-c", c.mkString(" ")))
 
-  def runInteractive(using Path): Vector[String] => String = 
+  def runInteractive(using Path): Vector[String] => String =
     c => { %(c); ""}
 
-  def apply(cmd: String*)(using Path): TypedCommand[Vector[String]] = 
+  def apply(cmd: String*)(using Path): TypedCommand[Vector[String]] =
     TypedCommand(run, cmd.mkString(" "), cmd.toVector)
 
-  def shell(cmd: String*)(using Path): TypedCommand[Vector[String]] = 
+  def shell(cmd: String*)(using Path): TypedCommand[Vector[String]] =
     TypedCommand(runShell, cmd.mkString(" "), cmd.toVector)
 
-  def fake(cmd: String): TypedCommand[String] = 
+  def fake(cmd: String): TypedCommand[String] =
     TypedCommand(_ => "", cmd, cmd)
 
-  def interactive(cmd: String*)(using Path): TypedCommand[Vector[String]] = 
+  def interactive(cmd: String*)(using Path): TypedCommand[Vector[String]] =
     TypedCommand(runInteractive, cmd.mkString(" "), cmd.toVector)
 
 

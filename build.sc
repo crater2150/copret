@@ -3,6 +3,8 @@ import $ivy.`com.lihaoyi::mill-contrib-bloop:0.9.5`
 
 object copret extends ScalaModule with PublishModule {
   def scalaVersion = "3.1.0"
+  override def ammoniteVersion = "2.5.3"
+
 
   def publishVersion = "0.0.1"
   def pomSettings = PomSettings(
