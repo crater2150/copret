@@ -1,7 +1,7 @@
 package de.qwertyuiop.copret
 
 object syntax extends Templates with TerminalSyntax with SlideSyntax:
-  import Format._
+  import Format.*
   extension (str: String)
     def code(using theme: Theme) = Format.ticks.replaceAllIn(str, m => theme.style("code")("$1").render)
     def text(using Theme) = Paragraph(str)
@@ -22,7 +22,7 @@ object syntax extends Templates with TerminalSyntax with SlideSyntax:
     def red = fansi.Color.Red(str)
 
   extension (str: fansi.Str)
-    def text(using Theme) = Paragraph(str)
+    def text(using Theme) = Paragraph(str.toString)
     def style(key: String, default: fansi.Attrs)(using theme: Theme) = theme.style(key, default)(str)
 
     def blue = fansi.Color.Blue(str)
