@@ -33,6 +33,10 @@ object Terminal:
       key += Console.in.read
     keymap(key.toList)
 
+  def printStatus(msg: String): Unit =
+    cursorTo(height, 1)
+    print(msg)
+
   def prompt[T](prefix: String, parse: String => T)(
       retry: (T, String) => Boolean = (t: T, s: String) => false,
       error: String => String = in => s"Invalid input: $in"

@@ -15,7 +15,7 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
     @annotation.tailrec def rec(p: Presentation, pos: Int, action: SlideAction): Unit =
       action match
         case Start =>
-          executeSlide(p, pos)()
+          executeSlide(p, 0)()
           rec(p, 0, waitkey)
         case Next =>
           if pos + 1 < p.slides.size then
@@ -61,8 +61,7 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
           waitkey
           rec(p, pos - 1, QuickNext)
         case Other(codes) =>
-          Terminal.cursorTo(Terminal.height, 1)
-          println(action.show)
+          Terminal.printStatus(action.show)
           rec(p, pos, waitkey)
         case Quit =>
           ()
@@ -127,23 +126,30 @@ case class Pause(millisec: Long) extends Slide
 case object PauseKey extends Slide
 case class Meta(contents: (Presentation, Int) => Slide) extends Slide
 
-case class TypedCommand[T](exec: T => String, display: String, cmd: T) extends Slide:
+case class TypedCommand[T](exec: T => String, display: String, cmd: T, cmdIsHidden: Boolean, outputIsHidden: Boolean) extends Slide:
   private lazy val _output = exec(cmd)
   def output = _output
 
   infix def showing (s: String): TypedCommand[T] = TypedCommand(exec, s, cmd)
 
   def show() =
-    prompt()
-    Terminal.showCursor()
-    typeCmd()
-    print(output)
-    Terminal.hideCursor()
+    force()
+    if ! cmdIsHidden then
+      prompt()
+      Terminal.showCursor()
+      typeCmd()
+    if ! outputIsHidden then
+      print(output)
+    if ! cmdIsHidden then
+      Terminal.hideCursor()
 
   def quickShow() =
-    prompt()
-    println(display)
-    print(output)
+    force()
+    if ! cmdIsHidden then
+      prompt()
+      println(display)
+    if ! outputIsHidden then
+      print(output)
 
   def prompt() = print(fansi.Color.LightGreen("user@host % "))
   def force() = _output
