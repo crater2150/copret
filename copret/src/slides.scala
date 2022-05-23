@@ -10,14 +10,14 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
     run()
 
   import Presentation._
-  def run()(using Keymap) =
+  def run()(using keymap: Keymap) =
     import SlideAction.*
     @annotation.tailrec def rec(p: Presentation, pos: Int, action: SlideAction): Unit =
       action match
         case Start =>
           executeSlide(p, pos)()
           rec(p, 0, waitkey)
-        case Next | Other(_) =>
+        case Next =>
           if pos + 1 < p.slides.size then
             executeSlide(p, pos + 1)()
             rec(p, pos + 1, waitkey)
@@ -55,6 +55,15 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
           target match
             case Some(i) => rec(p, pos, Goto(i))
             case None => rec(p, pos - 1, QuickNext)
+        case Help =>
+          Terminal.clear()
+          println(keymap.help)
+          waitkey
+          rec(p, pos - 1, QuickNext)
+        case Other(codes) =>
+          Terminal.cursorTo(Terminal.height, 1)
+          println(action.show)
+          rec(p, pos, waitkey)
         case Quit =>
           ()
     rec(this, 0, Start)
