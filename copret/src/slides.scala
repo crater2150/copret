@@ -6,6 +6,7 @@ import syntax._
 case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.empty):
   def start(using keymap: Keymap = Keymap.default) =
     Terminal.enterRawMode()
+    Terminal.hideCursor()
     run()
 
   import Presentation._
@@ -34,7 +35,12 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
           else
             rec(p, pos, waitkey)
         case Interactive(cmd, path) =>
-          %(cmd)(path)
+          Terminal.showCursor()
+          try
+            %(cmd)(path)
+          catch case _ => ()
+          Terminal.hideCursor()
+          Terminal.clear()
           rec(p, pos - 1, QuickNext)
         case Goto(target) =>
           for i <- 0 until target
@@ -57,11 +63,12 @@ case class Presentation(slides: Vector[Slide], meta: Map[String, String] = Map.e
 object Presentation:
   def executeSlide(p: Presentation, pos: Int)(slide: Slide = p.slides(pos)): Unit = slide match
     case Paragraph(contents) => println(contents)
-    case Clear => print("\u001b[2J\u001b[;H")
+    case Clear => Terminal.clear()
     case PauseKey => waitkey(using Keymap.empty)
     case Pause(msec) => Thread.sleep(msec)
     case incMd @ IncludeMarkdown(_) => println(incMd.markdownBlock())
-    case Image(file, width, height, keepAspect) => print(Terminal.showImage(file, width, height, keepAspect))
+    case Image(file, None) => Terminal.showImage(file)
+    case Image(file, Some(ImageSize(w, h, aspect))) => Terminal.showImageScaled(file, w, h, aspect)
     case cmd: TypedCommand[_] => cmd.show()
     case Silent(actions) => actions()
     case Group(slides) => slides.foreach(executeSlide(p, pos))
@@ -80,16 +87,32 @@ object Presentation:
     case cmd: TypedCommand[_] => cmd.force()
     case Group(slides) => slides.foreach(executeSilent(p, pos))
     case lios @ LazyIOSlide(_, display) => executeSilent(p, pos)(lios.genSlide())
-    case Paragraph(_) | Image(_,_,_,_) | Clear | IncludeMarkdown(_) | Meta(_) => ()
+    case Paragraph(_) | Image(_,_) | Clear | IncludeMarkdown(_) | Meta(_) => ()
     case _ => executeQuick(p, pos)(slide)
 
 
+case class ImageSize(width: Double, height: Double, keepAspect: Boolean)
+
 sealed trait Slide
-case class Paragraph(contents: fansi.Str) extends Slide
+case class Paragraph(contents: String) extends Slide:
+  def centerVertical(height: Int): Paragraph =
+    val lines = contents.toString.count(_ == '\n') + 1
+    val pad = "\n" * ((height - lines) / 2)
+    Paragraph(pad + contents + pad)
+
+object Paragraph:
+  def apply(str: fansi.Str): Paragraph = Paragraph(str.toString)
+
 case class IncludeMarkdown(path: Path) extends Slide:
   def markdownBlock() =
     %%%("/usr/bin/mdcat", "--columns", (columns * 0.8).toInt.toString, path.toString)(using ImplicitWd.implicitCwd).block
-case class Image(path: Path, width: String = "100%", height: String = "100%", keepAspect: Boolean = true) extends Slide
+
+case class Image(path: Path, sizing: Option[ImageSize]) extends Slide
+object Image:
+  def apply(path: Path) = new Image(path, None)
+  def scaled(path: Path, width: Double, height: Double, keepAspect: Boolean) =
+    Image(path, Some(ImageSize(width, height, keepAspect)))
+
 case object Clear extends Slide
 case class Pause(millisec: Long) extends Slide
 case object PauseKey extends Slide
@@ -103,8 +126,10 @@ case class TypedCommand[T](exec: T => String, display: String, cmd: T) extends S
 
   def show() =
     prompt()
+    Terminal.showCursor()
     typeCmd()
     print(output)
+    Terminal.hideCursor()
 
   def quickShow() =
     prompt()
