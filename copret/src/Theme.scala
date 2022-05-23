@@ -15,12 +15,13 @@ case class Theme(styles: Map[String, fansi.Attrs], figletFonts: Map[String, Stri
   def extend(newFonts: Map[String, String])(implicit d: DummyImplicit) = copy(figletFonts = figletFonts ++ newFonts)
   def ++(newFonts: Map[String, String])(implicit d: DummyImplicit) = copy(figletFonts = figletFonts ++ newFonts)
 
-given default: Theme = Theme(Map(
-    "titleLine" -> (fansi.Bold.On ++ fansi.Color.DarkGray),
-    "code" -> fansi.Color.Yellow
-  ),
-  Map("titleLine" -> "pagga")
-  )
+object Theme:
+  given default: Theme = Theme(Map(
+      "titleLine" -> (fansi.Bold.On ++ fansi.Color.DarkGray),
+      "code" -> fansi.Color.Yellow
+    ),
+    Map("titleLine" -> "smbraille")
+    )
 
 object Format:
   def alignRight(str: String, padding: Int = 2) =" " * (columns - str.length - padding) + str + " " * padding
